@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#6366f1"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="LoanDesk"/>
+  <title>LoanDesk CRM</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<div class="bg-mesh"></div>
+<div id="toast" class="toast" role="alert"></div>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="app-logo">LD</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;text-align:center;margin-bottom:4px">LoanDesk CRM</h1>
+    <p style="text-align:center;color:var(--muted);font-size:14px;margin-bottom:32px">Business &amp; Doctor Loan Manager</p>
+    <form id="loginForm">
+      <div style="margin-bottom:14px">
+        <label class="form-label">Username</label>
+        <input id="loginUser" type="text" class="form-input" placeholder="Enter username" autocomplete="username" required/>
+      </div>
+      <div style="margin-bottom:22px">
+        <label class="form-label">Password</label>
+        <input id="loginPass" type="password" class="form-input" placeholder="Enter password" autocomplete="current-password" required/>
+      </div>
+      <div id="loginError" class="hidden" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);color:#fb7185;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;text-align:center"></div>
+      <button type="submit" style="width:100%;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,0.3)">Sign In →</button>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     HOME — MODULE SELECTOR
+══════════════════════════════════════════════ -->
+<div id="homeScreen" class="hidden">
+  <div style="width:100%;max-width:400px">
+    <div style="text-align:center;margin-bottom:36px">
+      <div class="app-logo" style="margin-bottom:16px">LD</div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px">LoanDesk CRM</h1>
+      <p style="color:var(--muted);font-size:14px">Select your loan module to continue</p>
+    </div>
+
+    <!-- Business Loan Card -->
+    <div class="module-card biz" onclick="enterModule('biz')">
+      <div class="module-icon">🏢</div>
+      <div class="module-title">Business Loan</div>
+      <div class="module-desc">Manage business loan leads — proprietorship, partnership, PVT LTD, LLP &amp; more</div>
+      <div class="module-arrow">→</div>
+    </div>
+
+    <!-- Doctor Loan Card -->
+    <div class="module-card doc" onclick="enterModule('doc')">
+      <div class="module-icon">🩺</div>
+      <div class="module-title">Doctors Loan</div>
+      <div class="module-desc">Manage doctor loan leads — equipment loans, clinic setup &amp; professional loans</div>
+      <div class="module-arrow">→</div>
+    </div>
+
+    <button onclick="logout()" style="width:100%;max-width:400px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:14px;padding:13px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px">
+      Logout
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP SHELL (shared by both modules)
+══════════════════════════════════════════════ -->
+<div id="appShell" class="hidden">
+
+  <div id="offlineBanner" class="offline-banner">📵 Offline — changes sync when connected</div>
+
+  <!-- Top Header -->
+  <header class="top-header">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="goHome()" style="background:transparent;border:none;cursor:pointer;padding:4px 8px 4px 0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div id="moduleLabel" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;line-height:1.1"></div>
+          <div style="display:flex;align-items:center;font-size:11px;color:var(--muted)">
+            <span id="syncDot" class="sync-dot"></span>
+            <span id="syncLabel">Synced</span>
+            <span id="pendingBadge" class="pending-badge hidden">0 pending</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="logout()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Logout</button>
+    </div>
+  </header>
+
+  <!-- ─── DASHBOARD VIEW ─── -->
+  <div id="viewDashboard" class="hidden" style="padding:16px">
+    <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px">Dashboard</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px" id="dashSubtitle"></p>
+
+    <div class="stats-grid">
+      <div class="stat-card s-total" style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="stat-number" id="statTotal">0</div>
+            <div class="stat-label">Total Leads</div>
+          </div>
+          <div id="totalIcon" style="width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px"></div>
+        </div>
+      </div>
+      <div class="stat-card s-int" onclick="quickFilter('Interested')" style="cursor:pointer">
+        <div class="stat-number" id="statInt">0</div>
+        <div class="stat-label">Interested</div>
+      </div>
+      <div class="stat-card s-proc" onclick="quickFilter('Loan Processing')" style="cursor:pointer">
+        <div class="stat-number" id="statProc">0</div>
+        <div class="stat-label">Processing</div>
+      </div>
+      <div class="stat-card s-dis" onclick="quickFilter('Loan Disbursed')" style="cursor:pointer">
+        <div class="stat-number" id="statDis">0</div>
+        <div class="stat-label">Disbursed</div>
+      </div>
+      <div class="stat-card" onclick="quickFilter('Call Back')" style="cursor:pointer">
+        <div class="stat-number" style="color:#fbbf24" id="statCb">0</div>
+        <div class="stat-label">Call Back</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <h3 style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px">Quick Actions</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="switchView('leads')" style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;text-align:left;width:100%;color:var(--text)">
+        <div style="width:40px;height:40px;background:rgba(99,102,241,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        </div>
+        <div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">View All Leads</div><div style="font-size:12px;color:var(--muted)">Browse &amp; manage</div></div>
+      </button>
+      <button onclick="switchView('add')" style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;text-align:left;width:100%;color:var(--text)">
+        <div id="addQuickIcon" style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700" id="addQuickLabel">Add New Lead</div><div style="font-size:12px;color:var(--muted)">Register a new lead</div></div>
+      </button>
+      <button onclick="syncToSheets()" style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;text-align:left;width:100%;color:var(--text)">
+        <div style="width:40px;height:40px;background:rgba(16,185,129,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+        </div>
+        <div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">Sync to Google Sheets</div><div style="font-size:12px;color:var(--muted)">Push pending changes</div></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── LEADS VIEW ─── -->
+  <div id="viewLeads" class="hidden" style="padding:16px">
+    <div class="search-wrap" style="margin-bottom:12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="search" class="search-input" placeholder="Search leads…"/>
+    </div>
+    <div class="filter-pills" style="margin-bottom:16px" id="filterPills">
+      <button class="filter-pill active" data-status="All">All</button>
+      <button class="filter-pill" data-status="Interested">Interested</button>
+      <button class="filter-pill" data-status="Call Back">Call Back</button>
+      <button class="filter-pill" data-status="Loan Processing">Processing</button>
+      <button class="filter-pill" data-status="Loan Disbursed">Disbursed</button>
+      <button class="filter-pill" data-status="Not Interested">Not Interested</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span id="leadsCount" style="font-size:13px;color:var(--muted);font-weight:500"></span>
+    </div>
+    <div id="leadsContainer" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+
+  <!-- ─── ADD LEAD VIEW ─── -->
+  <div id="viewAdd" class="hidden" style="padding:16px">
+    <h2 id="formTitle" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:20px">New Lead</h2>
+    <form id="leadForm">
+      <!-- Business Form -->
+      <div id="bizForm" class="hidden field-group">
+
+        <div class="section-divider"><span>Business Info</span></div>
+
+        <div>
+          <label class="form-label">Business Type *</label>
+          <select id="bBizType" class="form-input" onchange="onBizTypeChange()">
+            <option value="Proprietorship">Proprietorship</option>
+            <option value="Partnership">Partnership</option>
+            <option value="PVT LTD">PVT LTD</option>
+            <option value="LLP">LLP</option>
+            <option value="OPC">OPC</option>
+          </select>
+        </div>
+
+        <div id="gstWrap" class="hidden">
+          <label class="form-label">GST Available?</label>
+          <select id="bGst" class="form-input">
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Nature of Business</label>
+          <input id="bNature" type="text" class="form-input" placeholder="e.g. Manufacturing, Trading, Services…"/>
+        </div>
+
+        <div>
+          <label class="form-label">Name of Business *</label>
+          <input id="bBizName" type="text" class="form-input" placeholder="Business / Company name"/>
+        </div>
+
+        <div>
+          <label class="form-label">Office / Registered Address</label>
+          <input id="bAddress" type="text" class="form-input" placeholder="Full office address"/>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label class="form-label">Office Number</label>
+            <input id="bOfficeNo" type="tel" class="form-input" placeholder="Office phone"/>
+          </div>
+          <div>
+            <label class="form-label">Mobile Number *</label>
+            <input id="bMobile" type="tel" class="form-input" placeholder="10-digit mobile" maxlength="10"/>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Office Email</label>
+          <input id="bEmail" type="email" class="form-input" placeholder="office@business.com"/>
+        </div>
+
+        <div class="section-divider"><span>ITR Details</span></div>
+
+        <!-- ITR AY 24-25 -->
+        <div class="itr-year-block">
+          <div class="itr-year-label">Assessment Year 2024–25</div>
+          <div class="field-group">
+            <div>
+              <label class="form-label">Turnover (₹)</label>
+              <input id="bTurnover1" type="number" class="form-input" placeholder="Enter turnover amount"/>
+            </div>
+            <div>
+              <label class="form-label">Net Profit (₹)</label>
+              <input id="bProfit1" type="number" class="form-input" placeholder="Enter net profit amount"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- ITR AY 25-26 -->
+        <div class="itr-year-block">
+          <div class="itr-year-label">Assessment Year 2025–26</div>
+          <div class="field-group">
+            <div>
+              <label class="form-label">Turnover (₹)</label>
+              <input id="bTurnover2" type="number" class="form-input" placeholder="Enter turnover amount"/>
+            </div>
+            <div>
+              <label class="form-label">Net Profit (₹)</label>
+              <input id="bProfit2" type="number" class="form-input" placeholder="Enter net profit amount"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider"><span>Loan &amp; Financial</span></div>
+
+        <div>
+          <label class="form-label">Existing Loan?</label>
+          <select id="bExistingLoan" class="form-input" onchange="toggleBizLoanDetails()">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+
+        <div id="bizLoanDetailsWrap" class="hidden sub-card">
+          <div>
+            <label class="form-label">Loan Amount (₹)</label>
+            <input id="bLoanAmt" type="number" class="form-input" placeholder="Outstanding loan amount"/>
+          </div>
+          <div>
+            <label class="form-label">Loan Company / Bank</label>
+            <input id="bLoanCompany" type="text" class="form-input" placeholder="Bank or NBFC name"/>
+          </div>
+          <div>
+            <label class="form-label">Loan Type</label>
+            <input id="bLoanType" type="text" class="form-input" placeholder="e.g. Term Loan, OD, CC…"/>
+          </div>
+          <div class="field-row">
+            <div>
+              <label class="form-label">Total Tenure</label>
+              <input id="bLoanTenure" type="text" class="form-input" placeholder="e.g. 36 months"/>
+            </div>
+            <div>
+              <label class="form-label">Monthly EMI (₹)</label>
+              <input id="bLoanEmi" type="number" class="form-input" placeholder="EMI amount"/>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Own House Available?</label>
+          <select id="bOwnHouse" class="form-input">
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+
+        <div class="section-divider"><span>Lead Status</span></div>
+
+        <div>
+          <label class="form-label">Status *</label>
+          <select id="bStatus" class="form-input">
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Call Back">Call Back</option>
+            <option value="Loan Processing">Loan Processing</option>
+            <option value="Loan Disbursed">Loan Disbursed</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Notes</label>
+          <textarea id="bNotes" class="form-input" rows="3" placeholder="Any additional notes…"></textarea>
+        </div>
+
+        <div>
+          <label class="form-label">Date Added</label>
+          <input id="bDateAdded" type="date" class="form-input"/>
+        </div>
+      </div>
+
+      <!-- Doctor Form -->
+      <div id="docForm" class="hidden field-group">
+
+        <div class="section-divider"><span>Doctor Info</span></div>
+
+        <div>
+          <label class="form-label">Doctor Name *</label>
+          <input id="dName" type="text" class="form-input" placeholder="Dr. Rajesh Kumar"/>
+        </div>
+        <div>
+          <label class="form-label">Degree / Qualification</label>
+          <input id="dDegree" type="text" class="form-input" placeholder="MBBS, MD, MDS…"/>
+        </div>
+        <div>
+          <label class="form-label">Mobile Number *</label>
+          <input id="dMobile" type="tel" class="form-input" placeholder="10-digit mobile" maxlength="10"/>
+        </div>
+        <div>
+          <label class="form-label">Email ID</label>
+          <input id="dEmail" type="email" class="form-input" placeholder="doctor@email.com"/>
+        </div>
+        <div>
+          <label class="form-label">Address / Clinic</label>
+          <input id="dAddress" type="text" class="form-input" placeholder="Clinic address or city"/>
+        </div>
+        <div>
+          <label class="form-label">Current Banking Name</label>
+          <input id="dBank" type="text" class="form-input" placeholder="HDFC, SBI, ICICI…"/>
+        </div>
+
+        <div class="section-divider"><span>Loan Details</span></div>
+
+        <div>
+          <label class="form-label">Previous Loan?</label>
+          <select id="dPrevLoan" class="form-input" onchange="toggleDocLoanDetails()">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+        <div id="docLoanDetailsWrap" class="hidden">
+          <label class="form-label">Loan Details</label>
+          <input id="dLoanDetails" type="text" class="form-input" placeholder="e.g. 50L home loan at HDFC"/>
+        </div>
+
+        <div class="section-divider"><span>Lead Status</span></div>
+
+        <div>
+          <label class="form-label">Status *</label>
+          <select id="dStatus" class="form-input">
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Call Back">Call Back</option>
+            <option value="Loan Processing">Loan Processing</option>
+            <option value="Loan Disbursed">Loan Disbursed</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Notes</label>
+          <textarea id="dNotes" class="form-input" rows="3" placeholder="Need 50L equipment loan…"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Date Added</label>
+          <input id="dDateAdded" type="date" class="form-input"/>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+        <button type="submit" class="btn-primary">Save Lead →</button>
+        <button type="button" class="btn-secondary" onclick="switchView('leads')">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="switchView('add')" aria-label="Add new lead">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="navDashboard" onclick="switchView('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-btn" id="navLeads" onclick="switchView('leads')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Leads
+    </button>
+    <button class="nav-btn" id="navAdd" onclick="switchView('add')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Lead
+    </button>
+  </nav>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     EDIT MODAL
+══════════════════════════════════════════════ -->
+<div id="editModal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Edit Lead</h3>
+      <button onclick="closeModal('editModal')" style="background:transparent;border:none;color:var(--muted);cursor:pointer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <!-- Edit Business -->
+        <div id="editBizForm" class="hidden field-group">
+          <div><label class="form-label">Business Type</label>
+            <select id="ebBizType" class="form-input" onchange="onEditBizTypeChange()">
+              <option>Proprietorship</option><option>Partnership</option><option>PVT LTD</option><option>LLP</option><option>OPC</option>
+            </select></div>
+          <div id="eGstWrap" class="hidden"><label class="form-label">GST Available?</label>
+            <select id="ebGst" class="form-input"><option>Yes</option><option>No</option></select></div>
+          <div><label class="form-label">Nature of Business</label><input id="ebNature" type="text" class="form-input"/></div>
+          <div><label class="form-label">Name of Business</label><input id="ebBizName" type="text" class="form-input"/></div>
+          <div><label class="form-label">Address</label><input id="ebAddress" type="text" class="form-input"/></div>
+          <div class="field-row">
+            <div><label class="form-label">Office No.</label><input id="ebOfficeNo" type="tel" class="form-input"/></div>
+            <div><label class="form-label">Mobile *</label><input id="ebMobile" type="tel" class="form-input" maxlength="10" required/></div>
+          </div>
+          <div><label class="form-label">Email</label><input id="ebEmail" type="email" class="form-input"/></div>
+          <div class="itr-year-block">
+            <div class="itr-year-label">AY 2024–25</div>
+            <div class="field-row">
+              <div><label class="form-label">Turnover (₹)</label><input id="ebTurnover1" type="number" class="form-input"/></div>
+              <div><label class="form-label">Profit (₹)</label><input id="ebProfit1" type="number" class="form-input"/></div>
+            </div>
+          </div>
+          <div class="itr-year-block">
+            <div class="itr-year-label">AY 2025–26</div>
+            <div class="field-row">
+              <div><label class="form-label">Turnover (₹)</label><input id="ebTurnover2" type="number" class="form-input"/></div>
+              <div><label class="form-label">Profit (₹)</label><input id="ebProfit2" type="number" class="form-input"/></div>
+            </div>
+          </div>
+          <div><label class="form-label">Existing Loan?</label>
+            <select id="ebExistingLoan" class="form-input" onchange="toggleEditBizLoan()"><option>No</option><option>Yes</option></select></div>
+          <div id="eBizLoanWrap" class="hidden sub-card">
+            <div><label class="form-label">Loan Amount (₹)</label><input id="ebLoanAmt" type="number" class="form-input"/></div>
+            <div><label class="form-label">Loan Company</label><input id="ebLoanCompany" type="text" class="form-input"/></div>
+            <div><label class="form-label">Loan Type</label><input id="ebLoanType" type="text" class="form-input"/></div>
+            <div class="field-row">
+              <div><label class="form-label">Tenure</label><input id="ebLoanTenure" type="text" class="form-input"/></div>
+              <div><label class="form-label">EMI (₹)</label><input id="ebLoanEmi" type="number" class="form-input"/></div>
+            </div>
+          </div>
+          <div><label class="form-label">Own House?</label>
+            <select id="ebOwnHouse" class="form-input"><option>Yes</option><option>No</option></select></div>
+          <div><label class="form-label">Status</label>
+            <select id="ebStatus" class="form-input">
+              <option>Interested</option><option>Not Interested</option><option>Call Back</option><option>Loan Processing</option><option>Loan Disbursed</option>
+            </select></div>
+          <div><label class="form-label">Notes</label><textarea id="ebNotes" class="form-input" rows="3"></textarea></div>
+        </div>
+
+        <!-- Edit Doctor -->
+        <div id="editDocForm" class="hidden field-group">
+          <div><label class="form-label">Doctor Name *</label><input id="edName" type="text" class="form-input" required/></div>
+          <div><label class="form-label">Degree</label><input id="edDegree" type="text" class="form-input"/></div>
+          <div><label class="form-label">Mobile *</label><input id="edMobile" type="tel" class="form-input" maxlength="10" required/></div>
+          <div><label class="form-label">Email</label><input id="edEmail" type="email" class="form-input"/></div>
+          <div><label class="form-label">Address</label><input id="edAddress" type="text" class="form-input"/></div>
+          <div><label class="form-label">Current Bank</label><input id="edBank" type="text" class="form-input"/></div>
+          <div><label class="form-label">Previous Loan?</label>
+            <select id="edPrevLoan" class="form-input" onchange="toggleEditDocLoan()"><option>No</option><option>Yes</option></select></div>
+          <div id="eDocLoanWrap" class="hidden"><label class="form-label">Loan Details</label><input id="edLoanDetails" type="text" class="form-input"/></div>
+          <div><label class="form-label">Status</label>
+            <select id="edStatus" class="form-input">
+              <option>Interested</option><option>Not Interested</option><option>Call Back</option><option>Loan Processing</option><option>Loan Disbursed</option>
+            </select></div>
+          <div><label class="form-label">Notes</label><textarea id="edNotes" class="form-input" rows="3"></textarea></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <button type="submit" class="btn-primary">Update Lead →</button>
+          <button type="button" class="btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     DELETE CONFIRM
+══════════════════════════════════════════════ -->
+<div id="confirmOverlay" class="confirm-overlay">
+  <div class="confirm-card">
+    <div style="width:56px;height:56px;background:rgba(244,63,94,0.12);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+    </div>
+    <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px">Delete Lead?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Delete <strong id="deleteLeadName" style="color:var(--text)"></strong>? This cannot be undone.</p>
+    <div style="display:flex;gap:10px">
+      <button onclick="document.getElementById('confirmOverlay').classList.remove('open')" class="btn-secondary" style="flex:1">Cancel</button>
+      <button onclick="executeDelete()" style="flex:1;background:rgba(244,63,94,0.85);border:none;color:white;border-radius:14px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
